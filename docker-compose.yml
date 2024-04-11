@@ -1,0 +1,44 @@
+services:
+  api:
+    build: 
+      context: ./api
+
+    volumes:
+      - .\data\imported_docs:/docs
+      - .\data\db\vector:/db
+
+    ports:
+      - 8000:80
+
+    env_file:
+      - .env
+
+  chatbot:
+    build: 
+      context: ./chatbot
+
+    volumes:
+      - .\data\imported_docs:/docs
+
+    env_file:
+      - .env
+
+  neo4j:
+    image: neo4j:5.18
+
+    volumes:
+      - .\data\db\neo4j\data:/data
+      - .\data\db\neo4j\logs:/logs
+      - .\data\db\neo4j\plugins:/plugins
+      - .\data\db\neo4j\licenses:/licenses"
+
+    ports:
+      - 7474:7474
+      - 7687:7687
+
+    environment:
+      NEO4J_AUTH: none
+      NEO4J_PLUGINS: "[\"apoc\", \"graph-data-science\"]"
+
+    env_file:
+      - .env
