@@ -1,5 +1,19 @@
+.env.*
 .env
 .venv
+.idea
+.vs
 
-__pycache__
+**/.env.*
+**/.env
+**/.venv
+**/.idea
+**/.vs
+**/*.tmp
+
+**/__pycache__
 vectorstore/data
+data/imported_docs/*
+!data/imported_docs/*.md
+data/db/*
+!data/db/*.md
