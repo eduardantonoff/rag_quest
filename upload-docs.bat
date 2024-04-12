@@ -1,0 +1,1 @@
+python utils\upload_docs --src data\training_docs --api http://localhost:8000/api/docs/upload

@@ -60,16 +60,15 @@ class Index():
         return self
 
 
-class Store():
+class Store:
     '''
     A set of fabric tools to handle indexes.
     '''
 
-    # TODO: to config file
-    data_path = './data'
+    def __init__(self, data_path: str):
+        self.data_path = data_path
 
-    @classmethod
-    def indexes(cls):
+    def indexes(self):
         '''
         Return list of indexes.
         '''
@@ -77,28 +76,24 @@ class Store():
         # TODO: list of indexes
         return []
 
-    @classmethod
-    def exist(cls, name: str):
+    def exist(self, name: str):
         # TODO: check existance
         return True
 
-    @classmethod
-    def getIndex(cls, index_name: str = 'index'):
+    def getIndex(self, index_name: str = 'index'):
         '''
         Get index by name. Try to load it.
         '''
 
         # check if data folder doesnt exist
-        if not os.path.exists(cls.data_path):
-            os.mkdir(cls.data_path)
+        if not os.path.exists(self.data_path):
+            os.mkdir(self.data_path)
 
         # TODO: make it a choosable
         embeddings = SentenceTransformerEmbeddings()
 
-        return Index(cls.data_path, index_name, embeddings)
+        return Index(self.data_path, index_name, embeddings)
 
-    @classmethod
-    def delete(cls, name: str = 'index'):
-
+    def delete(self, name: str = 'index'):
         # TODO: delete
         return True

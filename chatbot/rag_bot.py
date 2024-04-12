@@ -13,7 +13,7 @@ WELCOME_MESSAGE =  """Здравствуйте!
 welcome_text = WELCOME_MESSAGE
 
 # Initialize bot and dispatcher
-API_TOKEN = os.getenv('BOT_TOKEN')
+API_TOKEN = os.getenv('GPN_CHATBOT_TOKEN')
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 dp.middleware.setup(LoggingMiddleware())
