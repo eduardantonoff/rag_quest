@@ -1,30 +1,36 @@
 import asyncio
+import requests
+import os
+from dotenv import load_dotenv
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram import executor
-import os
-
-feedback_score = []
 
 WELCOME_MESSAGE =  """Здравствуйте! 
 Я виртуальный ассистент. 
 Помогу ответить на ваши вопросы."""
 
-welcome_text = WELCOME_MESSAGE
-
 # Initialize bot and dispatcher
-API_TOKEN = os.getenv('GPN_CHATBOT_TOKEN')
-bot = Bot(token=API_TOKEN)
+load_dotenv('template.env')
+TOKEN = "7171711357:AAHjndsx2WgY7bEiteo2Itx-TPzHXmSZMkc" #os.getenv('GPN_CHATBOT_TOKEN')
+URL = os.getenv('GPN_API_URL')
+
+bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 dp.middleware.setup(LoggingMiddleware())
 
 # Function for model response
 async def get_model_response(message):
-    # Perform some preprocessing on the user's message
-    # processed_message = 
+    
+    response = requests.post(URL + "/api/explore", data=message.text)
+    
+    if response.status_code != 200:
+        print('Код ошибки:', response.status_code)
+        print('Ошибка:', response.text)
 
-    # Placeholder for actual model response
-    model_response = "SOME MODEL RESPONSE" #+ processed_message
+    # Placeholder for actual response
+    model_response = response.text
 
     return model_response
 
@@ -51,9 +57,7 @@ async def get_feedback_field(id):
 # Handler for user messages
 @dp.message_handler()
 async def echo(message: types.Message):
-    
-    global feedback_message
-    
+        
     links_keyboard = types.InlineKeyboardMarkup()
     links_keyboard.add(
         types.InlineKeyboardButton(
@@ -77,8 +81,6 @@ async def send_links(callback_query: types.CallbackQuery):
 @dp.callback_query_handler(lambda query: query.data in ['0', '1'])
 async def process_feedback(callback_query: types.CallbackQuery):
     
-    global feedback_score
-    feedback_score.append(callback_query.data)
     thanks_message = await bot.send_message(callback_query.from_user.id, "Спасибо за отзыв!")
         
     # Delete the message with the inline keyboard
