@@ -1,6 +1,7 @@
 import docx2txt
-import pdftotext
+import pdfplumber
 import os
+import re
 
 
 class DataConverter:
@@ -9,10 +10,44 @@ class DataConverter:
 
     @staticmethod
     def pdf_to_text(path: str) -> str:
-        with open(path, "rb") as pdf_file:
-            pages = pdftotext.PDF(pdf_file)
-            extracted_text = "\n\n".join(pages)
-        return extracted_text
+        extracted_text = []
+        # Параметры (TODO: придумать, как их лучше передавать)
+        crop_coords = [0.05, 0.04, 0.94, 0.95]
+        end_of_line_list = ['.', ':', ';']
+        min_font_size = 10
+        with pdfplumber.open(path) as pdf:
+            line_buffer = ''
+            for page in pdf.pages:
+                # Ограничение области обработки исходной страницы,
+                # чтобы не попадали номера страниц и т д
+                my_width = page.width
+                my_height = page.height
+                my_bbox = (crop_coords[0] * float(my_width), crop_coords[1] * float(my_height),
+                           crop_coords[2] * float(my_width), crop_coords[3] * float(my_height))
+                page_crop = page.crop(bbox=my_bbox)
+                text_lines = page_crop.extract_text_lines(x_tolerance=1)
+                for item in text_lines:
+                    # Игнорирование мелкого шрифта (примечания, таблицы)
+                    if float(item['chars'][0]['size']) >= min_font_size:
+                        text_line = item['text']
+                        if text_line.strip():
+                            # Каждая строка в итоговом тексте должна
+                            # начинаться с номера (буллита):
+                            if re.match(r'^\d+(\.\d+)*\.', text_line.strip()):
+                                if line_buffer == '':
+                                    line_buffer = text_line
+                                else:
+                                    extracted_text.append(line_buffer)
+                                    line_buffer = text_line
+                            elif line_buffer == '':
+                                line_buffer = text_line
+                            else:
+                                line_buffer = line_buffer + ' ' + text_line
+                            # Если найден символ конца строки:
+                            if text_line.split()[-1][-1] in end_of_line_list:
+                                extracted_text.append(line_buffer)
+                                line_buffer = ''
+        return '\n'.join(extracted_text)
 
     @staticmethod
     def docx_to_text(path: str) -> str:
