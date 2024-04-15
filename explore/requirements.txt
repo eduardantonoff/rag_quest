@@ -136,5 +136,4 @@ wcwidth==0.2.13
 xxhash==3.4.1
 yandexcloud==0.271.0
 yarl==1.9.4
-sentence-transformers=2.6.1
-faiss-cpu=1.8.0
+faiss-cpu==1.8.0
