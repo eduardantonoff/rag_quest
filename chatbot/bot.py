@@ -23,7 +23,7 @@ dp.middleware.setup(LoggingMiddleware())
 # Function for model response
 async def get_model_response(message):
     
-    response = requests.post(URL + "/api/explore", data=message.text)
+    response = requests.post(URL + "/api/query", data=message.text)
     
     if response.status_code != 200:
         print('Код ошибки:', response.status_code)
