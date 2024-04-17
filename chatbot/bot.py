@@ -2,6 +2,7 @@ import asyncio
 import requests
 import os
 from dotenv import load_dotenv
+from rag import RAGModel
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
@@ -13,6 +14,7 @@ WELCOME_MESSAGE =  """Здравствуйте!
 
 # Initialize bot and dispatcher
 load_dotenv('template.env')
+
 TOKEN = "7171711357:AAHjndsx2WgY7bEiteo2Itx-TPzHXmSZMkc" #os.getenv('GPN_CHATBOT_TOKEN')
 URL = os.getenv('GPN_API_URL')
 
@@ -20,17 +22,21 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 dp.middleware.setup(LoggingMiddleware())
 
+model = RAGModel()
+
 # Function for model response
 async def get_model_response(message):
     
-    response = requests.post(URL + "/api/query", data=message.text)
+    inquery = message.text
     
-    if response.status_code != 200:
-        print('Код ошибки:', response.status_code)
-        print('Ошибка:', response.text)
+    # response = requests.post(URL + "/api/query", data=inquery)
+    
+    # if response.status_code != 200:
+    #     print('Код ошибки:', response.status_code)
+    #     print('Ошибка:', response.text)
 
     # Placeholder for actual response
-    model_response = response.text
+    model_response = model.get_response(inquery)
 
     return model_response
 
