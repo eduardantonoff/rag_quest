@@ -1,9 +1,3 @@
-# processing:
-import os
-import re
-import pandas as pd
-from dotenv import load_dotenv
-
 # neo4j:
 from langchain_community.graphs import Neo4jGraph
 from langchain_community.vectorstores import Neo4jVector
@@ -18,31 +12,22 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain.chains import RetrievalQAWithSourcesChain
 from langchain.memory import ConversationBufferMemory
 
+from config import Config
 
-class RAGModel():
-    
-    def __init__(self) -> None:
-        # env
-        load_dotenv("template.env")
 
-        # neo4j:
-        NEO4J_URI = os.getenv('NEO4J_URI')
-        NEO4J_USERNAME = os.getenv('NEO4J_USERNAME')
-        NEO4J_PASSWORD = os.getenv('NEO4J_PASSWORD')
-        NEO4J_DATABASE= os.getenv('NEO4J_DATABASE')
+class RAGModel:
 
-        # llm:
-        LLM_SCOPE = os.getenv('SCOPE')
-        LLM_AUTH = os.getenv('AUTH_DATA')
+    def __init__(self, cfg: Config) -> None:
+        self.config = cfg
 
         # llm initialization
         self.llm = GigaChat(
-            credentials = LLM_AUTH, 
-            temperature = 0.3, 
-            n = 1, 
-            model = "GigaChat-Plus", # 32k context window
-            repetition_penalty = 1.0,
-            verify_ssl_certs = False
+            credentials=self.config.LLM_AUTH,
+            temperature=0.3,
+            n=1,
+            model="GigaChat-Plus",  # 32k context window
+            repetition_penalty=1.0,
+            verify_ssl_certs=False
         )
 
         # parser initialization
@@ -50,8 +35,8 @@ class RAGModel():
 
         # embeddings initialization
         self.embeddings = GigaChatEmbeddings(
-            credentials = LLM_AUTH, 
-            verify_ssl_certs = False
+            credentials= self.config.LLM_AUTH,
+            verify_ssl_certs=False
         )
 
         # promt template
@@ -66,32 +51,32 @@ class RAGModel():
                     Вопрос: {question}
                     Контекст: {context}
                     
-                    Ответ: Предоставьте ваш ответ, опираясь на указанные выше указания, отформотируйте текст под выдачу в телеграмм
+                    Ответ: Предоставьте ваш ответ, опираясь на указанные выше указания, отформатируйте текст под выдачу в телеграмм
                     """
 
         # prompt initialization
         self.prompt = ChatPromptTemplate.from_template(self.template)
-        
+
         neo4j_vector = Neo4jVector.from_existing_index(
             self.embeddings,
-            url = NEO4J_URI,
-            username = NEO4J_USERNAME,
-            password = NEO4J_PASSWORD,
-            index_name = "vector"
+            url=self.config.NEO4J_URI,
+            username=self.config.NEO4J_USERNAME,
+            password=self.config.NEO4J_PASSWORD,
+            index_name="vector"
             # search_type = 'hybrid'
         )
-        
+
         # llm retrival chain
         self.chain = RetrievalQAWithSourcesChain.from_chain_type(
             self.llm,
-            chain_type = "stuff", # "stuff", "map_rerank", "refine"
-            retriever = neo4j_vector.as_retriever(search_kwargs={"k": 5}),
+            chain_type="stuff",  # "stuff", "map_rerank", "refine"
+            retriever=neo4j_vector.as_retriever(search_kwargs={"k": 5}),
             return_source_documents=False,
             reduce_k_below_max_tokens=False,
             max_tokens_limit=32000,
-            chain_type_kwargs = {
+            chain_type_kwargs={
                 "verbose": False,
-                "prompt": self.prompt, # step_back_prompt
+                "prompt": self.prompt,  # step_back_prompt
                 "document_variable_name": "context",
                 "memory": ConversationBufferMemory(
                     memory_key='history',
@@ -99,12 +84,9 @@ class RAGModel():
                 ),
             }
         )
-        
-        
 
     # sub query functions
-    def step_back_prompt(self, text):
-        
+    def step_back_prompt(self, text: str):
         chain = self.llm | self.parser
 
         template = f"""
@@ -122,12 +104,10 @@ class RAGModel():
                     Проанализируйте и сформулируйте общие концепции и основные принципы на основе представленных деталей в виде развернутых вопросов.
                     """
 
-        model_response = chain.invoke(template)   
+        model_response = chain.invoke(template)
         return model_response
 
-
-    def extract_question(self, text):
-        
+    def extract_question(self, text: str):
         chain = self.llm | self.parser
 
         template = f"""
@@ -147,11 +127,10 @@ class RAGModel():
                     Без дополнительных комментариев.
                     """
 
-        model_response = chain.invoke(template) 
+        model_response = chain.invoke(template)
         return model_response
 
-
-    # finall function
+    # final function
     def get_response(self, request: str) -> str:
         inquiry = str(request.replace('\n', ' '))
         # abstraction = step_back_prompt(llm, parser, inquiry)
@@ -160,13 +139,17 @@ class RAGModel():
         # print("\n\n---\n\n", question, "\n\n---\n\n")
         response = self.chain.invoke(
             {"question": question},
-            return_only_outputs = True
+            return_only_outputs=True
         )["answer"]
         return response
 
 # for testing
-# rag = RAGModel()
-# while True:
-#     query = input()
-#     response = rag.get_response(query)
-#     print(response)
+if __name__ == "__main__":
+    config = Config()
+    config.dump()
+
+    rag = RAGModel(config)
+    while True:
+        query = input()
+        response = rag.get_response(query)
+        print(response)

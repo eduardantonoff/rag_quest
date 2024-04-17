@@ -40,4 +40,4 @@ COPY ./*.py .
 
 
 # Run the application.
-CMD python rag_bot.py
+CMD python bot.py

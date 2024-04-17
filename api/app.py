@@ -3,23 +3,23 @@ import os
 import tempfile
 from hashlib import md5
 import uvicorn
-from dotenv import load_dotenv
 from fastapi import FastAPI, File, UploadFile, HTTPException, APIRouter, Body
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from config import Config
 from data import DataConverter, DataProcessor
 
+
 logger = logging.getLogger("uvicorn")
 log_config = uvicorn.config.LOGGING_CONFIG
 log_config['formatters']['default']['fmt'] = '%(asctime)s [%(levelname)s] - %(message)s'
 log_config['level'] = 'debug'
 
-load_dotenv(override=False, encoding='utf-8')
 
 config = Config()
 config.dump()
-dp = DataProcessor(db_path=config.database_dir)
+
+dp = DataProcessor(config)
 
 router = APIRouter()
 
@@ -107,4 +107,3 @@ if __name__ == "__main__":
     uvicorn.run(app, host=HOST, port=PORT, log_level="debug", log_config=log_config)
 
     print(f"Server is ready and listening at http://{HOST}:{PORT}")
-
