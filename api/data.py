@@ -1,7 +1,9 @@
-import docx2txt
-import pdfplumber
+from docx2txt import process as process_docx
+from pdfplumber import open as open_pdf
 import os
 import re
+from rag import RAGModel
+from config import Config
 
 
 class DataConverter:
@@ -15,7 +17,7 @@ class DataConverter:
         crop_coords = [0.05, 0.04, 0.94, 0.95]
         end_of_line_list = ['.', ':', ';']
         min_font_size = 10
-        with pdfplumber.open(path) as pdf:
+        with open_pdf(path) as pdf:
             line_buffer = ''
             for page in pdf.pages:
                 # Ограничение области обработки исходной страницы,
@@ -51,13 +53,14 @@ class DataConverter:
 
     @staticmethod
     def docx_to_text(path: str) -> str:
-        text = docx2txt.process(path)
+        text = process_docx(path)
         return text
 
 
 class DataProcessor:
-    def __init__(self, db_path: str):
-        self.db_path = db_path
+    def __init__(self, config: Config):
+        self.config = config
+        self.rag = RAGModel(config)
 
     def update_db(self, doc_path: str) -> None:
         extension = os.path.splitext(doc_path)[-1]
@@ -73,34 +76,9 @@ class DataProcessor:
             with open(doc_path, 'r') as file:
                 text = file.read()
 
-        db_file_path = os.path.join(self.db_path, file_id + ".txt")
+        db_file_path = os.path.join(self.config.database_dir, file_id + ".txt")
         with open(db_file_path, 'w', encoding='utf-8') as file:
             file.write(text)
 
     def query(self, query_text: str) -> str:
-        # TODO: integrate query processing logic here
-        detected_questions_section_content = "..."
-        suitable_chunks_section_content = "..."
-        final_answer_section_content = "..."
-
-        detected_questions_section_caption = ">>>>>>>>>>>>>>>>>>>>>>>>> Извлеченные вопросы >>>>>>>>>>>>>>>>>>>>>>>>>"
-        suitable_chunks_section_caption = "<<<<<<<<<<<<<<<<<<<<<<<< Подходящие чанки текста из базы знаний <<<<<<<<<<<<<<<<<<<<<<<<"
-        final_answer_section_caption = "<<<<<<<<<<<<<<<<<<<<<<<< Финальный ответ <<<<<<<<<<<<<<<<<<<<<<<<"
-
-        return f'''
-        {detected_questions_section_caption}
-        
-        {detected_questions_section_content}
-        
-        
-        
-        {suitable_chunks_section_caption}
-        
-        {suitable_chunks_section_content}
-        
-        
-        
-        {final_answer_section_caption}
-        
-        {final_answer_section_content}
-        '''
+        return self.rag.get_response(query_text)
