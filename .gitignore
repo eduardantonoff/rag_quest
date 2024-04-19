@@ -3,6 +3,7 @@
 .venv
 .idea
 .vs
+.DS_Store
 
 **/.env.*
 **/.env
