@@ -1,6 +1,6 @@
 import os
 
-TOKEN = "7171711357:AAHjndsx2WgY7bEiteo2Itx-TPzHXmSZMkc"#os.getenv('GPN_CHATBOT_TOKEN')
+TOKEN = os.getenv('GPN_CHATBOT_TOKEN')
 URL = os.getenv('GPN_API_URL')
 
 WELCOME_MESSAGE = """Здравствуйте! 
