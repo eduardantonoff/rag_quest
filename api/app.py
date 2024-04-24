@@ -8,13 +8,30 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 
 from config import Config
 from data import DataConverter, DataProcessor
+from typing import List, Dict
+from pydantic import BaseModel
+
+
+class StringListResponse(BaseModel):
+    response: List[str]
+
+
+class DocumentProvisionReference(BaseModel):
+    content: str
+    meta: Dict[str, str]
+
+
+class ComplexQueryAnswerResponse(BaseModel):
+    question: str
+    answer: str
+    sources: str
+    provisions: List[DocumentProvisionReference]
 
 
 logger = logging.getLogger("uvicorn")
 log_config = uvicorn.config.LOGGING_CONFIG
 log_config['formatters']['default']['fmt'] = '%(asctime)s [%(levelname)s] - %(message)s'
 log_config['level'] = 'debug'
-
 
 config = Config()
 config.dump()
@@ -51,9 +68,25 @@ async def upload_file(file: UploadFile = File(...)) -> JSONResponse:
     )
 
 
-@router.post("/query")
-async def new_endpoint(body: str = Body(..., media_type="text/plain")) -> PlainTextResponse:
-    return PlainTextResponse(dp.query(body))
+@router.post("/docs/query/{template_id}", response_model=ComplexQueryAnswerResponse)
+async def new_endpoint(
+        template_id: int,
+        body: str = Body(..., media_type="text/plain")
+) -> ComplexQueryAnswerResponse:
+    resp = dp.query_docs(body, template_id)
+    return ComplexQueryAnswerResponse(
+        question=resp.question,
+        answer=resp.answer,
+        sources=resp.sources,
+        provisions=[DocumentProvisionReference(content=provision.content, meta=provision.meta) for provision in resp.provisions]
+    )
+
+
+@router.post("/docs/provisions", response_model=StringListResponse)
+async def new_endpoint(
+        body: str = Body(..., media_type="text/plain")
+) -> StringListResponse:
+    return StringListResponse(response=dp.find_doc_provisions(body))
 
 
 @router.get("/")

@@ -1,9 +1,11 @@
 from docx2txt import process as process_docx
 from pdfplumber import open as open_pdf
+
 import os
 import re
 from rag import RAGModel
 from config import Config
+from typing import List, Dict
 
 
 class DataConverter:
@@ -57,6 +59,20 @@ class DataConverter:
         return text
 
 
+class DocumentProvisionRef:
+    def __init__(self, content: str, meta: Dict[str, str]):
+        self.content = content
+        self.meta = meta
+
+
+class ComplexQueryAnswer:
+    def __init__(self, question: str, answer: str, sources: str, provisions: List[DocumentProvisionRef]):
+        self.question = question
+        self.answer = answer
+        self.sources = sources
+        self.provisions = provisions
+
+
 class DataProcessor:
     def __init__(self, config: Config):
         self.config = config
@@ -80,5 +96,19 @@ class DataProcessor:
         with open(db_file_path, 'w', encoding='utf-8') as file:
             file.write(text)
 
-    def query(self, query_text: str) -> str:
-        return self.rag.get_response(query_text)
+    def query_docs(self, query_text: str, template_id: int = 1) -> ComplexQueryAnswer:
+        query_result = self.rag.handle_query(query_text, template_id)
+        provisions = [
+            DocumentProvisionRef(content=o.page_content, meta=o.metadata) for o in query_result['source_documents']
+        ]
+
+        return ComplexQueryAnswer(
+            question=query_result['question'],
+            answer=query_result['answer'],
+            sources=query_result['sources'],
+            provisions=provisions
+        )
+
+    def find_doc_provisions(self, provision_number: str) -> List[str]:
+        resp = self.rag.find_relevant_bullets(provision_number)
+        return resp
