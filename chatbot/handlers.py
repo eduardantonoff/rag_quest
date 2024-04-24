@@ -1,4 +1,4 @@
-import asyncio, os
+import asyncio, os, requests
 from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
@@ -6,7 +6,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from create_bot import dp, bot
 from keyboards import choose_mode_kb, get_docs_kb, feedback_kb
-from utils import WELCOME_MESSAGE, FEEDBACK_MESSAGE
+from utils import WELCOME_MESSAGE, FEEDBACK_MESSAGE, URL
 
 class ModeStates(StatesGroup):
     model_mode = State()
@@ -22,6 +22,8 @@ async def start_chat(message: types.Message):
 
 # ======================== MODEL HANDLERS ========================
 
+# Уважаемые коллеги,  Добрый день! У меня возник вопрос относительно расчета начальной максимальной цены (НМЦ) при организации конкурентной процедуры и с рамочным договоров.  Интересует, допустимо ли при расчете НМЦ указывать ориентировочный объем, умноженный на единичные расценки? Например, если планируется заключение рамочного договора на поставку товаров или оказание услуг с указанием ориентировочного объема, можно ли использовать стоимость какого-либо предполагаемого количества единиц товара или услуги, умноженную на соответствующую единичную расценку, для определения НМЦ?  Буду благодарен за ваше профессиональное мнение и рекомендации по данному вопросу. Это важно для нас в контексте правильного и эффективного планирования закупочных процессов.  С уважением,  [Ваше Имя] [Ваша Должность] [Ваша Компания]
+
 async def set_model_mode(message: types.Message, state: FSMContext):
     await ModeStates.model_mode.set()
     await bot.send_message(
@@ -30,13 +32,13 @@ async def set_model_mode(message: types.Message, state: FSMContext):
     )
     
 async def get_model_response(message: types.Message, state: FSMContext):
-    inquery = message.text
+    full_url = URL + "/api/docs/query/{template_id}"
+    body = str(message.text)
+    headers = {'Content-Type': 'text/plain'}
     
-    # response = requests.post(URL + "/api/query", data=inquery)
-    
-    # if response.status_code != 200:
-    #     print('Код ошибки:', response.status_code)
-    #     print('Ошибка:', response.text)
+    response = requests.post(full_url.format(template_id=1), headers=headers, data=body)
+    print(response.elapsed.total_seconds())
+    print(response.status_code, response.json(), sep='\n')
     
     model_response = "<model response from api>" # model.get_response(inquery)
     
@@ -73,11 +75,8 @@ async def set_database_mode(message: types.Message, state: FSMContext):
 async def get_database_response(message: types.Message, state: FSMContext):
     inquery = message.text
     
-    # response = requests.post(URL + "/api/query", data=inquery)
-    
-    # if response.status_code != 200:
-    #     print('Код ошибки:', response.status_code)
-    #     print('Ошибка:', response.text)
+    response = requests.post(URL + "/api/query/2", data=inquery)
+    print(response)
     
     database_response = "<database response from api>" #model.get_response(inquery)
     
