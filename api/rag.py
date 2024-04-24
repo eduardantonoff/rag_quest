@@ -105,7 +105,7 @@ class RAGModel:
     def handle_query(self, query: str, template_id: int = 1) -> any:
         inquiry = str(query.replace('\n', ' '))
         question = self.extract_question(inquiry, template_id)
-        resp = self.chain.invoke({"question": question}, return_only_outputs=True)
+        resp = self.chain.invoke({"question": question}, return_only_outputs=False)
         if 'question' not in resp:
             resp['question'] = question
         return resp
