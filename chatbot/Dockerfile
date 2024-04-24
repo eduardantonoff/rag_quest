@@ -10,6 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
+RUN mkdir -p /app/keyboards
 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
@@ -39,5 +40,8 @@ USER appuser
 COPY ./*.py .
 
 
+COPY ./keyboards /app/keyboards
+
+
 # Run the application.
-CMD python bot.py
+CMD python main.py
