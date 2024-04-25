@@ -18,5 +18,14 @@ keys
 
 data/imported_docs/*
 !data/imported_docs/*.md
-data/db/*
+
+data/db/collections
+data/db/vector
+
+data/db/neo4j/data
+data/db/neo4j/licenses
+data/db/neo4j/logs
+data/db/neo4j/plugins
+
+
 !data/db/*.md
