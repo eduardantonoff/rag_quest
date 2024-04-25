@@ -7,9 +7,13 @@ services:
       - .\data\imported_docs:/docs
       - .\data\db\vector:/db
       - .\data\db\collections:/collections
+      - .\data\prompts:/prompts
 
     ports:
       - 8000:80
+
+    depends_on:
+      - neo4j      
 
     env_file:
       - .env
@@ -21,6 +25,9 @@ services:
     volumes:
       - .\data\imported_docs:/docs
 
+    depends_on:
+      - api      
+
     env_file:
       - .env
 
@@ -28,6 +35,7 @@ services:
     image: neo4j:5.18
 
     volumes:
+      - .\data\db\neo4j\conf:/conf
       - .\data\db\neo4j\data:/data
       - .\data\db\neo4j\logs:/logs
       - .\data\db\neo4j\plugins:/plugins
