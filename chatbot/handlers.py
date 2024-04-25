@@ -6,7 +6,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from create_bot import dp, bot
 from keyboards import choose_mode_kb, get_docs_kb, feedback_kb
-from utils import WELCOME_MESSAGE, FEEDBACK_MESSAGE, ERROR_MESSAGE, query_docs_async
+from utils import WELCOME_MESSAGE, FEEDBACK_MESSAGE, get_model_response_from_api
 
 content = (None,)
 
@@ -34,32 +34,27 @@ async def set_model_mode(message: types.Message, state: FSMContext):
     
 async def get_model_response(message: types.Message, state: FSMContext):
     global content
-    print("1")
-    args = message.get_args().split(maxsplit=0)
-    print("2")
-    template_id, body = 1, args[0].strip('\'"')
-    print("3")
-    try:
-        print("4")
-        template_id = int(template_id)
-        print("5")
+    try:   
         await bot.send_message(
             chat_id=message.from_user.id, 
-            text="Ваш запрос уже обрабатывается!\nПожалуйста, подождите около 30 секунд...", 
+            text="Ваш запрос уже обрабатывается!\nПожалуйста, подождите около 30 секунд..." 
+        )
+        
+        model_response, content = await get_model_response_from_api(message.text)
+        
+        await bot.send_message(
+            chat_id=message.from_user.id, 
+            text=model_response, 
             reply_markup=get_docs_kb
         )
-        print("6")
-        result = await query_docs_async(template_id, body)
-        await message.reply(f"Detected questions in your request: {result.question}")
-        await message.reply(f"Answer: {result.answer}")
-        await message.reply(f"Doc provisions related:")
-        for provision in result.provisions:
-            await message.reply(f"{provision.content}")
             
-    except ValueError:
-        await message.reply("Template ID must be an integer.")
     except Exception as e:
-        await message.reply(f"An error occurred: {str(e)}") 
+        await bot.send_message(
+            chat_id=message.from_user.id, 
+            text=f"An error occurred: {str(e)}", 
+            reply_markup=get_docs_kb
+        )
+    
     
     # model_response = "<model response from api>" # model.get_response(inquery)
     
