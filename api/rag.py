@@ -3,6 +3,9 @@ import re
 import glob
 import pickle
 import numpy as np
+import time
+from neo4j import GraphDatabase
+from neo4j.exceptions import ServiceUnavailable
 from typing import List
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -51,10 +54,38 @@ class RAGModel:
 
         return self.vector_store
 
+    def wait_for_neo4j(self, uri, user, password, timeout=60):
+        # Create driver
+        driver = GraphDatabase.driver(uri, auth=(user, password))
+
+        start_time = time.time()
+        while True:
+            try:
+                # Try to create a session
+                with driver.session() as session:
+                    # Try to run a simple query
+                    session.run("MATCH (n) RETURN n LIMIT 1")
+                # If we got to this line, then all commands were successful
+                print("Neo4j is available, proceeding...")
+                break
+
+            except ServiceUnavailable as e:
+                # Catch exception when neo4j is not available
+                if time.time() - start_time > timeout:
+                    # If we've waited too long, raise the exception to the caller
+                    print("Couldn't establish connection in the specified timeout.")
+                    raise e
+                else:
+                    # If we haven't passed the timeout, wait for a while and retry
+                    print("Connection unsuccessful, retrying...")
+                    time.sleep(1)
+
     def __init__(self, cfg: Config) -> None:
         self.config = cfg
 
         self.embeddings = GigaChatEmbeddings(credentials=self.config.LLM_AUTH, verify_ssl_certs=False)
+
+        self.wait_for_neo4j(self.config.NEO4J_URI, self.config.NEO4J_USERNAME, self.config.NEO4J_PASSWORD)
 
         self.graph = Neo4jGraph(
             url=self.config.NEO4J_URI,
