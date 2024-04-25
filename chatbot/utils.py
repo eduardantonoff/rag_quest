@@ -46,7 +46,6 @@ class StringListResponse(BaseModel):
     
     
 async def query_docs_async(body, template_id=1) -> ComplexQueryAnswerResponse:
-    # Assuming `query_docs` is your API call function (make sure to adjust the implementation for async HTTP calls)
     url = f"{URL}/api/docs/query/{template_id}"
     headers = {"Content-Type": "text/plain"}
     
@@ -69,7 +68,7 @@ async def find_doc_provisions(body) -> StringListResponse:
             
             if response.status == 200:
                 resp_json = await response.json()
-                return StringListResponse.parse_obj(response)
+                return StringListResponse.parse_obj(resp_json)
             else:
                 raise Exception(f"Failed with status code {response.status}")
 
@@ -101,7 +100,18 @@ def parse_model_response(response: ComplexQueryAnswerResponse) -> Tuple[str, Tup
     return model_answer, tuple(contents)
 
 
+def parse_docs_response(provisions: StringListResponse) -> Tuple:
+    return tuple(provisions.response)
+
+
 async def get_model_response_from_api(text: str) -> Tuple[str, Tuple]:
     body = text.strip('\'"')
     response = await query_docs_async(body)
     return parse_model_response(response)
+
+
+async def get_docs_from_api(text: str) -> Tuple:
+    body = text.strip('\'"')
+    provisions = await find_doc_provisions(body)
+    print(provisions)
+    return parse_docs_response(provisions)

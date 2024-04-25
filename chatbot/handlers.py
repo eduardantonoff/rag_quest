@@ -6,7 +6,8 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from create_bot import dp, bot
 from keyboards import choose_mode_kb, get_docs_kb, feedback_kb
-from utils import WELCOME_MESSAGE, FEEDBACK_MESSAGE, get_model_response_from_api
+from utils import WELCOME_MESSAGE, FEEDBACK_MESSAGE, \
+      get_model_response_from_api, get_docs_from_api
 
 content = (None,)
 
@@ -34,6 +35,7 @@ async def set_model_mode(message: types.Message, state: FSMContext):
     
 async def get_model_response(message: types.Message, state: FSMContext):
     global content
+    
     try:   
         await bot.send_message(
             chat_id=message.from_user.id, 
@@ -54,31 +56,10 @@ async def get_model_response(message: types.Message, state: FSMContext):
             text=f"An error occurred: {str(e)}", 
             reply_markup=get_docs_kb
         )
-    
-    
-    # model_response = "<model response from api>" # model.get_response(inquery)
-    
-    # await bot.send_message(
-    #     chat_id=message.from_user.id, 
-    #     text=model_response, 
-    #     reply_markup=get_docs_kb
-    # )
-    
-    # await bot.send_message(
-    #     chat_id=message.from_user.id, 
-    #     text=FEEDBACK_MESSAGE, 
-    #     reply_markup=feedback_kb
-    # )
+        
     
 async def send_links(callback_query: types.CallbackQuery):
     
-    # docs = "<docs form api>"
-    # if type(content) == str:
-    #     await bot.send_message(
-    #         chat_id=callback_query.from_user.id, 
-    #         text=content
-    #     )
-    # else:
     for doc in content:
         await bot.send_message(
             chat_id=callback_query.from_user.id, 
@@ -94,49 +75,22 @@ async def set_database_mode(message: types.Message, state: FSMContext):
         text="Введите ваш запрос:"
     )
     
-async def get_database_response(message: types.Message, state: FSMContext):
-    inquery = message.text
+async def get_database_response(message: types.Message, state: FSMContext):    
     
-    response = requests.post(URL + "/api/query/2", data=inquery)
-    print(response)
-    
-    database_response = "<database response from api>" #model.get_response(inquery)
-    
-    await bot.send_message(
-        chat_id=message.from_user.id, 
-        text=database_response
-    )
-    
-    await bot.send_message(
-        chat_id=message.from_user.id, 
-        text=FEEDBACK_MESSAGE, 
-        reply_markup=feedback_kb
-    )
-
-# ======================== FEEDBACK HANDLERS ========================
-
-# async def process_feedback(callback_query: types.CallbackQuery):
-    
-#     thanks_message = await bot.send_message(
-#         chat_id=callback_query.from_user.id, 
-#         text="Спасибо за отзыв!"
-#     )
+    try:
+        database_response = await get_docs_from_api(message.text)
         
-#     # Delete the message with the inline keyboard
-#     await bot.delete_message(
-#         chat_id=callback_query.message.chat.id, 
-#         message_id=callback_query.message.message_id
-#     ) 
-    
-#     # Delay before editing the message
-#     await asyncio.sleep(2)
-    
-#     # Replace the message with a deleting animation
-#     await bot.edit_message_text(
-#         chat_id=callback_query.from_user.id, 
-#         message_id=thanks_message.message_id,
-#         text="Введите новый запрос:"
-#     )
+        for doc in database_response:
+            await bot.send_message(
+                chat_id=message.from_user.id, 
+                text=doc
+            )
+        
+    except Exception as e:
+        await bot.send_message(
+            chat_id=message.from_user.id, 
+            text=f"An error occurred: {str(e)}"
+        )
 
 
 def register_handlers(dp: Dispatcher):
@@ -161,12 +115,6 @@ def register_handlers(dp: Dispatcher):
         send_links, 
         lambda callback: callback.data == "get_docs",
         state=ModeStates.model_mode
-    )
-    
-    dp.register_callback_query_handler(
-        # process_feedback, 
-        lambda callback: callback.data in ["like", "dislike"],
-        state='*'
     )
     
     dp.register_message_handler(
