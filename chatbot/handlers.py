@@ -33,7 +33,8 @@ async def set_model_mode(message: types.Message, state: FSMContext):
     
 async def get_model_response(message: types.Message, state: FSMContext):
     global content
-    model_response = query_docs(message.text)
+    
+    model_response = get_model_response_from_api(message.text)
     
     # model_response = "<model response from api>" # model.get_response(inquery)
     
@@ -94,28 +95,28 @@ async def get_database_response(message: types.Message, state: FSMContext):
 
 # ======================== FEEDBACK HANDLERS ========================
 
-async def process_feedback(callback_query: types.CallbackQuery):
+# async def process_feedback(callback_query: types.CallbackQuery):
     
-    thanks_message = await bot.send_message(
-        chat_id=callback_query.from_user.id, 
-        text="Спасибо за отзыв!"
-    )
+#     thanks_message = await bot.send_message(
+#         chat_id=callback_query.from_user.id, 
+#         text="Спасибо за отзыв!"
+#     )
         
-    # Delete the message with the inline keyboard
-    await bot.delete_message(
-        chat_id=callback_query.message.chat.id, 
-        message_id=callback_query.message.message_id
-    ) 
+#     # Delete the message with the inline keyboard
+#     await bot.delete_message(
+#         chat_id=callback_query.message.chat.id, 
+#         message_id=callback_query.message.message_id
+#     ) 
     
-    # Delay before editing the message
-    await asyncio.sleep(2)
+#     # Delay before editing the message
+#     await asyncio.sleep(2)
     
-    # Replace the message with a deleting animation
-    await bot.edit_message_text(
-        chat_id=callback_query.from_user.id, 
-        message_id=thanks_message.message_id,
-        text="Введите новый запрос:"
-    )
+#     # Replace the message with a deleting animation
+#     await bot.edit_message_text(
+#         chat_id=callback_query.from_user.id, 
+#         message_id=thanks_message.message_id,
+#         text="Введите новый запрос:"
+#     )
 
 
 def register_handlers(dp: Dispatcher):
@@ -143,7 +144,7 @@ def register_handlers(dp: Dispatcher):
     )
     
     dp.register_callback_query_handler(
-        process_feedback, 
+        # process_feedback, 
         lambda callback: callback.data in ["like", "dislike"],
         state='*'
     )

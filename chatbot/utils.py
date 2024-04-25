@@ -44,11 +44,21 @@ class ComplexQueryAnswerResponse(BaseModel):
 class StringListResponse(BaseModel):
     response: List[str]
 
-def query_docs(body, template_id=1) -> ComplexQueryAnswerResponse:
+# def query_docs(body, template_id=1) -> ComplexQueryAnswerResponse:
     
-    url = f"{URL}/api/docs/query/{template_id}"
+#     url = f"{URL}/api/docs/query/{template_id}"
+#     headers = {"Content-Type": "text/plain"}
+    
+#     response = requests.post(url, data=body, headers=headers)
+#     if response.status_code == 200:
+#         # Parse the response JSON into a ComplexQueryAnswerResponse object
+#         return ComplexQueryAnswerResponse.parse_obj(response.json())
+#     else:
+#         return {"error": f"Failed with status code {response.status_code}"}
+    
+def query_docs(template_id, body) -> ComplexQueryAnswerResponse:
+    url = f"http://localhost:8000/api/docs/query/{template_id}"
     headers = {"Content-Type": "text/plain"}
-    
     response = requests.post(url, data=body, headers=headers)
     if response.status_code == 200:
         # Parse the response JSON into a ComplexQueryAnswerResponse object
@@ -56,16 +66,27 @@ def query_docs(body, template_id=1) -> ComplexQueryAnswerResponse:
     else:
         return {"error": f"Failed with status code {response.status_code}"}
 
+
 def find_doc_provisions(body) -> StringListResponse:
-    url = f"{URL}/api/docs/provisions"
+    url = "http://localhost:8000/api/docs/provisions"
     headers = {"Content-Type": "text/plain"}
-    
     response = requests.post(url, data=body, headers=headers)
     if response.status_code == 200:
         # Parse the response JSON into a StringListResponse object
         return StringListResponse.parse_obj(response.json())
     else:
         return {"error": f"Failed with status code {response.status_code}"}
+
+# def find_doc_provisions(body) -> StringListResponse:
+#     url = f"{URL}/api/docs/provisions"
+#     headers = {"Content-Type": "text/plain"}
+    
+#     response = requests.post(url, data=body, headers=headers)
+#     if response.status_code == 200:
+#         # Parse the response JSON into a StringListResponse object
+#         return StringListResponse.parse_obj(response.json())
+#     else:
+#         return {"error": f"Failed with status code {response.status_code}"}
 
 def convert_to_utf8(text):
     try:
@@ -102,7 +123,7 @@ def get_model_response_from_api(text: str):
     url = f"{URL}/api/docs/query/1"
     headers = {'Content-type': 'text/plain'}
     
-    response = requests.post(url, data=convert_to_utf8(text), headers=headers)
+    response = requests.post(url, data=text, headers=headers)
     
     if response.status_code == 200:
         return parse_model_response(response.json())
