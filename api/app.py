@@ -60,7 +60,7 @@ async def upload_file(file: UploadFile = File(...)) -> JSONResponse:
     with open(imported_file_path, "wb") as buffer:
         buffer.write(content)
 
-    dp.update_db(imported_file_path)
+    dp.update_db(imported_file_path, file.filename)
 
     return JSONResponse(
         status_code=200,

@@ -6,6 +6,7 @@ services:
     volumes:
       - .\data\imported_docs:/docs
       - .\data\db\vector:/db
+      - .\data\db\collections:/collections
 
     ports:
       - 8000:80

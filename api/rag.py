@@ -1,5 +1,7 @@
 import os
 import re
+import glob
+import pickle
 import numpy as np
 from typing import List
 from sklearn.metrics.pairwise import cosine_similarity
@@ -38,25 +40,40 @@ class RAGModel:
 
         return qt0, qt1, qt2, qt3
 
+    def load_index(self):
+        path = self.config.collections_dir
+        collections = glob.glob(path + '**/*.pkl', recursive=True)
+
+        for file in collections:
+            with open(file, 'rb') as f:
+                chunks = pickle.load(f)
+            self.update_chunks(chunks)
+
+        return self.vector_store
+
     def __init__(self, cfg: Config) -> None:
         self.config = cfg
 
         self.embeddings = GigaChatEmbeddings(credentials=self.config.LLM_AUTH, verify_ssl_certs=False)
-        self.vector_store = Neo4jVector.from_existing_index(self.embeddings,
-                                                            url=self.config.NEO4J_URI,
-                                                            username=self.config.NEO4J_USERNAME,
-                                                            password=self.config.NEO4J_PASSWORD,
-                                                            node_label="Bullet",
-                                                            index_name="bullet",
-                                                            keyword_index_name="word",
-                                                            search_type='hybrid',
-                                                            )
 
         self.graph = Neo4jGraph(
             url=self.config.NEO4J_URI,
             username=self.config.NEO4J_USERNAME,
             password=self.config.NEO4J_PASSWORD,
             database=self.config.NEO4J_DATABASE)
+
+        try:
+            self.vector_store = Neo4jVector.from_existing_index(self.embeddings,
+                                                                url=self.config.NEO4J_URI,
+                                                                username=self.config.NEO4J_USERNAME,
+                                                                password=self.config.NEO4J_PASSWORD,
+                                                                node_label="Bullet",
+                                                                index_name="bullet",
+                                                                keyword_index_name="word",
+                                                                search_type='hybrid',
+                                                                )
+        except:
+            self.vector_store = self.load_index()
 
         self.llm = GigaChat(model="GigaChat-Pro",  # "GigaChat-Pro" / "GigaChat-Plus" (32k)
                             temperature=0.3,
@@ -75,21 +92,21 @@ class RAGModel:
                 "k": 10, 'score_threshold': 0.95, 'lambda_mult': 0.25
             })
 
-        self.chain = RetrievalQAWithSourcesChain.from_chain_type(self.llm,  # pro / plus
-                                                                 chain_type="stuff",
-                                                                 # "stuff" / "map_rerank" / "refine"
-                                                                 retriever=self.retriever,
-                                                                 return_source_documents=True,
-                                                                 reduce_k_below_max_tokens=True,
-                                                                 max_tokens_limit=8000,  # up to 32k with plus model
-                                                                 chain_type_kwargs={"verbose": False,
-                                                                                    "prompt": self.prompt,
-                                                                                    "document_variable_name": "context"})
+        self.chain = RetrievalQAWithSourcesChain.from_chain_type(
+            self.llm,  # pro / plus
+            chain_type="stuff",
+            # "stuff" / "map_rerank" / "refine"
+            retriever=self.retriever,
+            return_source_documents=True,
+            reduce_k_below_max_tokens=True,
+            max_tokens_limit=8000,  # up to 32k with plus model
+            chain_type_kwargs={"verbose": False,
+                               "prompt": self.prompt,
+                               "document_variable_name": "context"})
 
-    def extract_question(self, text: str, template_id: int = 1):
+    def extract_question(self, text: str, template_id: int = 1) -> str:
         chain = self.llm | self.parser
 
-        template = ''
         if template_id == 1:
             template = self.qt1.format(text=text)
         elif template_id == 2:
@@ -142,7 +159,7 @@ class RAGModel:
             return ["Отсутствуют"]
 
     @staticmethod
-    def get_bullets_or_source(resp: any):
+    def get_bullets_or_source(resp: any) -> []:
         bullets = []
         for doc in resp['source_documents']:
             bullet = doc.metadata.get('bullet')
@@ -150,6 +167,30 @@ class RAGModel:
                 bullet = doc.metadata.get('source')
             bullets.append(bullet)
         return bullets
+
+    def update_chunks(self, doc_chunks: any) -> None:
+        if self.is_remote_db:  # temporary lock for preconfigured db update
+            return
+
+        self.vector_store = Neo4jVector.from_documents(
+            doc_chunks, self.embeddings,
+            url=self.config.NEO4J_URI,
+            username=self.config.NEO4J_USERNAME,
+            password=self.config.NEO4J_PASSWORD,
+            node_label="Bullet",
+            index_name="bullet",
+            keyword_index_name="word",
+            search_type='hybrid',
+        )
+
+        self.retriever = self.vector_store.as_retriever(
+            search_kwargs={
+                "k": 10, 'score_threshold': 0.95, 'lambda_mult': 0.25
+            })
+
+    @property
+    def is_remote_db(self) -> bool:
+        return self.config.NEO4J_URI.lower().endswith("neo4j.io")
 
 
 # for testing

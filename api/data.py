@@ -3,9 +3,14 @@ from pdfplumber import open as open_pdf
 
 import os
 import re
+import pickle
+
+from custom_text_splitter import CustomTextSplitter
 from rag import RAGModel
 from config import Config
 from typing import List, Dict
+
+from langchain_community.document_loaders import TextLoader
 
 
 class DataConverter:
@@ -78,7 +83,7 @@ class DataProcessor:
         self.config = config
         self.rag = RAGModel(config)
 
-    def update_db(self, doc_path: str) -> None:
+    def update_db(self, doc_path: str, original_name: str) -> None:
         extension = os.path.splitext(doc_path)[-1]
         file_name = os.path.basename(doc_path)
         file_id = os.path.splitext(file_name)[0]
@@ -89,12 +94,26 @@ class DataProcessor:
         elif extension == '.docx':
             text = DataConverter.docx_to_text(doc_path)
         elif extension == '.txt':
-            with open(doc_path, 'r') as file:
+            with open(doc_path, 'r', encoding='utf-8') as file:
                 text = file.read()
 
         db_file_path = os.path.join(self.config.database_dir, file_id + ".txt")
         with open(db_file_path, 'w', encoding='utf-8') as file:
             file.write(text)
+
+        loader = TextLoader(db_file_path, encoding='UTF-8')
+        text_document = loader.load()
+        splitter = CustomTextSplitter()
+        doc_chunks = splitter.split_text(text_document[0].page_content, original_name, doc_path)
+        for chunk in doc_chunks:
+            chunk.metadata['source'] = original_name
+            chunk.metadata['file_id'] = file_id
+
+        coll_path = os.path.join(self.config.collections_dir, f'{file_id}.pkl')
+        with open(coll_path, 'wb') as f:
+            pickle.dump(doc_chunks, f)
+
+        self.rag.update_chunks(doc_chunks)
 
     def query_docs(self, query_text: str, template_id: int = 1) -> ComplexQueryAnswer:
         query_result = self.rag.handle_query(query_text, template_id)
