@@ -6,9 +6,9 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from create_bot import dp, bot
 from keyboards import choose_mode_kb, get_docs_kb, feedback_kb
-from utils import WELCOME_MESSAGE, FEEDBACK_MESSAGE, ERROR_MESSAGE, get_model_response_from_api
+from utils import WELCOME_MESSAGE, FEEDBACK_MESSAGE, ERROR_MESSAGE, get_model_response_from_api, query_docs
 
-content = None
+content = (None,)
 
 class ModeStates(StatesGroup):
     model_mode = State()
@@ -33,7 +33,7 @@ async def set_model_mode(message: types.Message, state: FSMContext):
     
 async def get_model_response(message: types.Message, state: FSMContext):
     global content
-    model_response, content = get_model_response_from_api(message.text)
+    model_response = query_docs(message.text)
     
     # model_response = "<model response from api>" # model.get_response(inquery)
     
