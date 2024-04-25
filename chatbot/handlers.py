@@ -1,4 +1,4 @@
-import asyncio, os
+import asyncio, os, requests
 from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
@@ -6,7 +6,9 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from create_bot import dp, bot
 from keyboards import choose_mode_kb, get_docs_kb, feedback_kb
-from utils import WELCOME_MESSAGE, FEEDBACK_MESSAGE
+from utils import WELCOME_MESSAGE, FEEDBACK_MESSAGE, get_model_response_from_api
+
+content = (None,)
 
 class ModeStates(StatesGroup):
     model_mode = State()
@@ -27,40 +29,62 @@ async def set_model_mode(message: types.Message, state: FSMContext):
     await bot.send_message(
         chat_id=message.from_user.id, 
         text="Введите ваш запрос:"
-    )
+    ) 
+    
     
 async def get_model_response(message: types.Message, state: FSMContext):
-    inquery = message.text
+    global content
+    try:   
+        await bot.send_message(
+            chat_id=message.from_user.id, 
+            text="Ваш запрос уже обрабатывается!\nПожалуйста, подождите около 30 секунд..." 
+        )
+        
+        model_response, content = await get_model_response_from_api(message.text)
+        
+        await bot.send_message(
+            chat_id=message.from_user.id, 
+            text=model_response, 
+            reply_markup=get_docs_kb
+        )
+            
+    except Exception as e:
+        await bot.send_message(
+            chat_id=message.from_user.id, 
+            text=f"An error occurred: {str(e)}", 
+            reply_markup=get_docs_kb
+        )
     
-    # response = requests.post(URL + "/api/query", data=inquery)
     
-    # if response.status_code != 200:
-    #     print('Код ошибки:', response.status_code)
-    #     print('Ошибка:', response.text)
+    # model_response = "<model response from api>" # model.get_response(inquery)
     
-    model_response = "<model response from api>" # model.get_response(inquery)
+    # await bot.send_message(
+    #     chat_id=message.from_user.id, 
+    #     text=model_response, 
+    #     reply_markup=get_docs_kb
+    # )
     
-    await bot.send_message(
-        chat_id=message.from_user.id, 
-        text=model_response, 
-        reply_markup=get_docs_kb
-    )
-    
-    await bot.send_message(
-        chat_id=message.from_user.id, 
-        text=FEEDBACK_MESSAGE, 
-        reply_markup=feedback_kb
-    )
+    # await bot.send_message(
+    #     chat_id=message.from_user.id, 
+    #     text=FEEDBACK_MESSAGE, 
+    #     reply_markup=feedback_kb
+    # )
     
 async def send_links(callback_query: types.CallbackQuery):
     
-    docs = "<docs form api>"
-    
-    await bot.send_message(
-        chat_id=callback_query.from_user.id, 
-        text=docs
-    )
-    
+    # docs = "<docs form api>"
+    # if type(content) == str:
+    #     await bot.send_message(
+    #         chat_id=callback_query.from_user.id, 
+    #         text=content
+    #     )
+    # else:
+    for doc in content:
+        await bot.send_message(
+            chat_id=callback_query.from_user.id, 
+            text=doc
+        )
+
 # ======================== DATABASE HANDLERS ========================
 
 async def set_database_mode(message: types.Message, state: FSMContext):
@@ -73,11 +97,8 @@ async def set_database_mode(message: types.Message, state: FSMContext):
 async def get_database_response(message: types.Message, state: FSMContext):
     inquery = message.text
     
-    # response = requests.post(URL + "/api/query", data=inquery)
-    
-    # if response.status_code != 200:
-    #     print('Код ошибки:', response.status_code)
-    #     print('Ошибка:', response.text)
+    response = requests.post(URL + "/api/query/2", data=inquery)
+    print(response)
     
     database_response = "<database response from api>" #model.get_response(inquery)
     
@@ -94,28 +115,28 @@ async def get_database_response(message: types.Message, state: FSMContext):
 
 # ======================== FEEDBACK HANDLERS ========================
 
-async def process_feedback(callback_query: types.CallbackQuery):
+# async def process_feedback(callback_query: types.CallbackQuery):
     
-    thanks_message = await bot.send_message(
-        chat_id=callback_query.from_user.id, 
-        text="Спасибо за отзыв!"
-    )
+#     thanks_message = await bot.send_message(
+#         chat_id=callback_query.from_user.id, 
+#         text="Спасибо за отзыв!"
+#     )
         
-    # Delete the message with the inline keyboard
-    await bot.delete_message(
-        chat_id=callback_query.message.chat.id, 
-        message_id=callback_query.message.message_id
-    ) 
+#     # Delete the message with the inline keyboard
+#     await bot.delete_message(
+#         chat_id=callback_query.message.chat.id, 
+#         message_id=callback_query.message.message_id
+#     ) 
     
-    # Delay before editing the message
-    await asyncio.sleep(2)
+#     # Delay before editing the message
+#     await asyncio.sleep(2)
     
-    # Replace the message with a deleting animation
-    await bot.edit_message_text(
-        chat_id=callback_query.from_user.id, 
-        message_id=thanks_message.message_id,
-        text="Введите новый запрос:"
-    )
+#     # Replace the message with a deleting animation
+#     await bot.edit_message_text(
+#         chat_id=callback_query.from_user.id, 
+#         message_id=thanks_message.message_id,
+#         text="Введите новый запрос:"
+#     )
 
 
 def register_handlers(dp: Dispatcher):
@@ -143,7 +164,7 @@ def register_handlers(dp: Dispatcher):
     )
     
     dp.register_callback_query_handler(
-        process_feedback, 
+        # process_feedback, 
         lambda callback: callback.data in ["like", "dislike"],
         state='*'
     )

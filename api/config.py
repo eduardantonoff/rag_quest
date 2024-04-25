@@ -7,6 +7,7 @@ class Config:
     GPN_API_DATABASE_DIR: Optional[str]
     GPN_API_IMPORTED_DOCS_DIR: Optional[str]
     GPN_API_PROMPTS_DIR: Optional[str]
+    GPN_API_COLLECTIONS_DIR: Optional[str]
 
     NEO4J_URI: Optional[str]
     NEO4J_USERNAME: Optional[str]
@@ -22,10 +23,12 @@ class Config:
         self._database_dir = None
         self._imported_docs_dir = None
         self._prompts_dir = None
+        self._collections_dir = None
 
         self.GPN_API_DATABASE_DIR = os.getenv('GPN_API_DATABASE_DIR')
         self.GPN_API_IMPORTED_DOCS_DIR = os.getenv('GPN_API_IMPORTED_DOCS_DIR')
         self.GPN_API_PROMPTS_DIR = os.getenv('GPN_API_PROMPTS_DIR')
+        self.GPN_API_COLLECTIONS_DIR = os.getenv('GPN_API_COLLECTIONS_DIR')
 
         self.NEO4J_URI = os.getenv('NEO4J_URI')
         self.NEO4J_USERNAME = os.getenv('NEO4J_USERNAME')
@@ -57,6 +60,10 @@ class Config:
         if not os.path.exists(self._prompts_dir):
             os.makedirs(self._prompts_dir)
 
+        self._collections_dir = os.path.abspath(self.GPN_API_COLLECTIONS_DIR)
+        if not os.path.exists(self._collections_dir):
+            os.makedirs(self._collections_dir)
+
     def get_imported_file_path(self, path: str) -> str:
         return os.path.join(self._imported_docs_dir, path)
 
@@ -79,6 +86,10 @@ class Config:
     @property
     def prompts_dir(self) -> Optional[str]:
         return self._prompts_dir
+
+    @property
+    def collections_dir(self) -> Optional[str]:
+        return self._collections_dir
 
 
 #%%
