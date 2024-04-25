@@ -68,6 +68,11 @@ async def upload_file(file: UploadFile = File(...)) -> JSONResponse:
     )
 
 
+@router.get("/")
+async def read_root():
+    return {"statue": "GPN RAG Quest API is up and running"}
+
+
 @router.post("/docs/query/{template_id}", response_model=ComplexQueryAnswerResponse)
 async def new_endpoint(
         template_id: int,
@@ -78,7 +83,8 @@ async def new_endpoint(
         question=resp.question,
         answer=resp.answer,
         sources=resp.sources,
-        provisions=[DocumentProvisionReference(content=provision.content, meta=provision.meta) for provision in resp.provisions]
+        provisions=[DocumentProvisionReference(content=provision.content, meta=provision.meta) for provision in
+                    resp.provisions]
     )
 
 
@@ -87,11 +93,6 @@ async def new_endpoint(
         body: str = Body(..., media_type="text/plain")
 ) -> StringListResponse:
     return StringListResponse(response=dp.find_doc_provisions(body))
-
-
-@router.get("/")
-async def read_root():
-    return {"statue": "GPN RAG Quest API is up and running"}
 
 
 @router.post("/docs/to-text/")
