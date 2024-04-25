@@ -6,7 +6,9 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from create_bot import dp, bot
 from keyboards import choose_mode_kb, get_docs_kb, feedback_kb
-from utils import WELCOME_MESSAGE, FEEDBACK_MESSAGE, URL
+from utils import WELCOME_MESSAGE, FEEDBACK_MESSAGE, ERROR_MESSAGE, get_model_response_from_api
+
+content = None
 
 class ModeStates(StatesGroup):
     model_mode = State()
@@ -22,8 +24,6 @@ async def start_chat(message: types.Message):
 
 # ======================== MODEL HANDLERS ========================
 
-# Уважаемые коллеги,  Добрый день! У меня возник вопрос относительно расчета начальной максимальной цены (НМЦ) при организации конкурентной процедуры и с рамочным договоров.  Интересует, допустимо ли при расчете НМЦ указывать ориентировочный объем, умноженный на единичные расценки? Например, если планируется заключение рамочного договора на поставку товаров или оказание услуг с указанием ориентировочного объема, можно ли использовать стоимость какого-либо предполагаемого количества единиц товара или услуги, умноженную на соответствующую единичную расценку, для определения НМЦ?  Буду благодарен за ваше профессиональное мнение и рекомендации по данному вопросу. Это важно для нас в контексте правильного и эффективного планирования закупочных процессов.  С уважением,  [Ваше Имя] [Ваша Должность] [Ваша Компания]
-
 async def set_model_mode(message: types.Message, state: FSMContext):
     await ModeStates.model_mode.set()
     await bot.send_message(
@@ -32,15 +32,10 @@ async def set_model_mode(message: types.Message, state: FSMContext):
     )
     
 async def get_model_response(message: types.Message, state: FSMContext):
-    full_url = URL + "/api/docs/query/{template_id}"
-    body = str(message.text)
-    headers = {'Content-Type': 'text/plain'}
+    global content
+    model_response, content = get_model_response_from_api(message.text)
     
-    response = requests.post(full_url.format(template_id=1), headers=headers, data=body)
-    print(response.elapsed.total_seconds())
-    print(response.status_code, response.json(), sep='\n')
-    
-    model_response = "<model response from api>" # model.get_response(inquery)
+    # model_response = "<model response from api>" # model.get_response(inquery)
     
     await bot.send_message(
         chat_id=message.from_user.id, 
@@ -56,13 +51,19 @@ async def get_model_response(message: types.Message, state: FSMContext):
     
 async def send_links(callback_query: types.CallbackQuery):
     
-    docs = "<docs form api>"
-    
-    await bot.send_message(
-        chat_id=callback_query.from_user.id, 
-        text=docs
-    )
-    
+    # docs = "<docs form api>"
+    # if type(content) == str:
+    #     await bot.send_message(
+    #         chat_id=callback_query.from_user.id, 
+    #         text=content
+    #     )
+    # else:
+    for doc in content:
+        await bot.send_message(
+            chat_id=callback_query.from_user.id, 
+            text=doc
+        )
+
 # ======================== DATABASE HANDLERS ========================
 
 async def set_database_mode(message: types.Message, state: FSMContext):
